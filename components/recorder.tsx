@@ -1,16 +1,57 @@
 "use client";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import RecordRTC from "recordrtc";
 import { FaMicrophone, FaStop } from "react-icons/fa";
+import { useChatStore } from "@/store/chat-store";
+import { Message } from "@/types/types";
+import { v4 as uuidv4 } from "uuid";
+
+import webSocketService from "@/services/websocket-service";
 
 const Recorder: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const recorderRef = useRef<RecordRTC | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const [aiMessageResponse, setAiMessageResponse] = useState<string>("");
+  const [websocketId, setWebsocketId] = useState<string>("");
+  const [messageId, setMessageId] = useState<string>("");
+
+  const setChatSessionId = useChatStore((state) => state.setChatSessionId);
+  const chatSessionId = useChatStore((state) => state.chatSessionId);
+
+  useEffect(() => {
+    if (chatSessionId === "") {
+      let sessionId = uuidv4();
+      setChatSessionId(sessionId);
+    }
+  }, [chatSessionId]);
 
   const startRecording = async () => {
+    if (!webSocketService.isConnected()) {
+      webSocketService.connect();
+    }
+
+    const messageId = uuidv4();
+    setMessageId(messageId);
+
+    const userId = localStorage.getItem("userId");
+
+    const id = uuidv4();
+    setWebsocketId(id);
+
+    const startAudioRequest = {
+      web_socket_id: id,
+      session_id: chatSessionId,
+      message_id: messageId,
+      user_id: userId,
+    };
+
+    console.log("websocket service ", webSocketService);
     try {
+      const socket = webSocketService.getSocket();
+
+      socket?.emit("onboarding_start_audio", startAudioRequest);
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
       });
