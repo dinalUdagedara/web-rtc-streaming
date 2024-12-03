@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect } from "react";
 import RecordRTC from "recordrtc";
 import { FaMicrophone, FaStop } from "react-icons/fa";
 import { useChatStore } from "@/store/chat-store";
-import { Message } from "@/types/types";
 import { v4 as uuidv4 } from "uuid";
 
 import webSocketService from "@/services/websocket-service";
@@ -13,7 +12,6 @@ const Recorder: React.FC = () => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const recorderRef = useRef<RecordRTC | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  const [aiMessageResponse, setAiMessageResponse] = useState<string>("");
   const [websocketId, setWebsocketId] = useState<string>("");
   const [messageId, setMessageId] = useState<string>("");
 
@@ -47,7 +45,6 @@ const Recorder: React.FC = () => {
       user_id: userId,
     };
 
-    console.log("websocket service ", webSocketService);
     try {
       const socket = webSocketService.getSocket();
 
@@ -58,31 +55,6 @@ const Recorder: React.FC = () => {
       mediaStreamRef.current = stream;
 
       setTimeout(() => {
-        // const recorder = new RecordRTC(stream, {
-        //   type: "audio",
-        //   recorderType: RecordRTC.StereoAudioRecorder,
-        //   mimeType: "audio/wav",
-        //   timeSlice: 500, // Increased timeSlice to ensure initial audio is captured
-        //   sampleRate: 46000,
-        //   numberOfAudioChannels: 1,
-        //   // ondataavailable: (blob: Blob) => {
-        //   //   console.log("ondataavailable", blob);
-        //   //   const reader = new FileReader();
-        //   //   reader.onloadend = () => {
-        //   //     const base64data = reader.result;
-        //   //     socket?.emit("stream_audio", {
-        //   //       web_socket_id: id,
-        //   //       session_id: chatSessionId,
-        //   //       message_id: messageId,
-        //   //       user_id: userId,
-        //   //       audio_data: base64data,
-        //   //       mime_type: "audio/wav",
-        //   //     });
-        //   //   };
-        //   //   reader.readAsDataURL(blob);
-        //   // },
-        // });
-
         let recorder = new RecordRTC(stream, {
           type: "audio",
           recorderType: RecordRTC.StereoAudioRecorder,
@@ -92,6 +64,19 @@ const Recorder: React.FC = () => {
           numberOfAudioChannels: 1,
           ondataavailable: (blob: Blob) => {
             console.log("ondataavailable", blob);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64data = reader.result;
+              socket?.emit("onboarding_stream_audio", {
+                web_socket_id: id,
+                session_id: chatSessionId,
+                message_id: messageId,
+                user_id: userId,
+                audio_data: base64data,
+                mime_type: "audio/wav",
+              });
+            };
+            reader.readAsDataURL(blob);
           },
         });
         recorderRef.current = recorder;
@@ -106,29 +91,20 @@ const Recorder: React.FC = () => {
 
   const stopRecording = () => {
     if (recorderRef.current) {
-      // Add a buffer before stopping the recording
       setTimeout(() => {
-        // recorderRef.current?.stopRecording(() => {
-        //   const socket = webSocketService.getSocket();
+        recorderRef.current?.stopRecording(() => {
+          const socket = webSocketService.getSocket();
 
-        //   const userId = localStorage.getItem("userId");
+          const userId = localStorage.getItem("userId");
 
-        //   const stopAudioRequest = {
-        //     web_socket_id: websocketId,
-        //     session_id: chatSessionId,
-        //     message_id: messageId,
-        //     user_id: userId,
-        //   };
-        //   socket?.emit("stop_audio", stopAudioRequest);
-
-        //   // const blob = recorderRef.current?.getBlob();
-        //   // if (blob) {
-        //   //   const audioUrl = URL.createObjectURL(blob); // Newly added line
-        //   //   setAudioUrl(audioUrl); // Newly added line
-        //   //   const audio = new Audio(audioUrl);
-        //   //   audio.play();
-        //   // }
-        // });
+          const stopAudioRequest = {
+            web_socket_id: websocketId,
+            session_id: chatSessionId,
+            message_id: messageId,
+            user_id: userId,
+          };
+          socket?.emit("onboarding_stop_audio", stopAudioRequest);
+        });
 
         setIsRecording(false);
 
