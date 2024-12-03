@@ -33,8 +33,6 @@ const Recorder: React.FC = () => {
     const messageId = uuidv4();
     setMessageId(messageId);
 
-    const userId = localStorage.getItem("userId");
-
     const id = uuidv4();
     setWebsocketId(id);
 
@@ -42,7 +40,7 @@ const Recorder: React.FC = () => {
       web_socket_id: id,
       session_id: chatSessionId,
       message_id: messageId,
-      user_id: userId,
+      user_id: chatSessionId,
     };
 
     try {
@@ -71,7 +69,7 @@ const Recorder: React.FC = () => {
                 web_socket_id: id,
                 session_id: chatSessionId,
                 message_id: messageId,
-                user_id: userId,
+                user_id: chatSessionId,
                 audio_data: base64data,
                 mime_type: "audio/wav",
               });
@@ -117,11 +115,11 @@ const Recorder: React.FC = () => {
   };
 
   return (
-    <div className=" bg-gray-700 text-white  flex justify-center flex-col text-center items-center h-[550px] w-[350px] rounded-xl p-4">
+    <div className="text-white  flex justify-center flex-col text-center items-center ">
       {!isRecording ? (
         <button
           onClick={startRecording}
-          className="bg-green-500 text-white px-4 py-4  hover:bg-green-600 transition duration-300 rounded-full"
+          className="bg-green-500 text-white px-4 py-4  hover:bg-green-600 rounded-full"
         >
           <FaMicrophone className="h-10 w-10" />
         </button>
